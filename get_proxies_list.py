@@ -21,3 +21,7 @@ def get_proxy_csv():
     url = "https://incloak.com/proxy-list/?maxtime=2000&type=h#list"
 	proxies = get_list(url)
 	odo(proxies, 'data/proxies.csv')
+
+
+if __name__ == '__main__':
+    get_proxy_csv()
