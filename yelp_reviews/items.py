@@ -30,9 +30,12 @@ class BizInfoItem(scrapy.Item):
 
 
 class ReviewItem(scrapy.Item):
-    id = scrapy.Field()
+    user_id = scrapy.Field()
     biz_id = scrapy.Field()
     yelp_stars = scrapy.Field()
-    review_date = scrapy.Field()
-    review_text = scrapy.Field()
+    date = scrapy.Field()
+    review = scrapy.Field()
+    useful_count = scrapy.Field()
+    funny_count = scrapy.Field()
+    cool_count = scrapy.Field()
 
