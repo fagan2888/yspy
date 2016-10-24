@@ -13,9 +13,8 @@ class BizInfoSpider(scrapy.Spider):
         zip_path = getattr(self, 'zip_csv', 'data/nyc_zip_codes.csv')
         zips = bz.data(zip_path)
         zips = bz.compute(zips.Zip_Code)
-        url_str = "http://www.yelp.com/search?find_loc={}"
+        url_str = "https://www.yelp.com/search?find_loc={}"
         urls = [url_str.format(z) for z in zips]
-        urls = [urls[0]]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
