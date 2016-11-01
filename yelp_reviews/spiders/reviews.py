@@ -8,6 +8,7 @@ from yelp_reviews.items import ReviewItem
 class ReviewsSpider(scrapy.Spider):
     name = "reviews"
     allowed_domains = ["yelp.com"]
+    no_review_count = 0
 
     def start_requests(self):
         biz_path = getattr(self, 'biz_json', 'data/biz.json')
@@ -29,14 +30,21 @@ class ReviewsSpider(scrapy.Spider):
             rev_item['cool_count'] = int(rev.css('a.cool .count::text').extract_first() or 0)
             return rev_item
         except Exception as e:
-            self.logger.error("Error parsing business: %s", rev_item['id'], exc_info=True)
+            self.logger.error("Error parsing review: %s", response.meta['id'], exc_info=True)
         return None
 
     def parse(self, response):
         reviews = response.css('div.review')[1:]  # skip first review as its for writing your own
 
+        if 'visit_captcha' in response.url:
+            self.logger("Captcha hit: {}".format(response.url))
+            raise scrapy.exceptions.CloseSpider("Too many pages crawled with no reviews, exiting...")
+
         if not reviews:
             self.logger.warning("No reviews found in %s", str(response.url))
+            if self.no_review_count == 5:
+                raise scrapy.exceptions.CloseSpider("Too many pages crawled with no reviews, exiting...")
+            self.no_review_count += 1
 
         for rev in reviews: 
             rev_item = self.parse_review(rev, response)
@@ -46,4 +54,5 @@ class ReviewsSpider(scrapy.Spider):
         next_url = response.css('a.next::attr(href)').extract_first()
         if next_url:
             next_page = response.urljoin(next_url)
-            yield scrapy.Request(next_page, callback=self.parse)
+            yield scrapy.Request(next_page, callback=self.parse, 
+                                 meta={'id': response.meta['id']})

@@ -52,12 +52,14 @@ COOKIES_ENABLED = False
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
+# HTTPS_PROXY = "https://127.0.0.1:8123"
 DOWNLOADER_MIDDLEWARES = {
 	# 'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
 	# 'scrapy_proxies.RandomProxy': 100,
 	# 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
-    'scrapy_fake_useragent.middleware.RandomUserAgentMiddleware': 400
+    'scrapy_fake_useragent.middleware.RandomUserAgentMiddleware': 400,
+    # 'yelp_reviews.middlewares.ProxyMiddleware': 410
 }
 
 # Enable or disable extensions
