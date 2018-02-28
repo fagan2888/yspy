@@ -8,15 +8,17 @@ class BizInfoSpider(scrapy.Spider):
     name = "biz_info"
     # start_urls = ["http://www.yelp.com/search?find_loc=11225"]
     allowed_domains = ["yelp.com"]
+    no_item_count = 0
 
     def start_requests(self):
         zip_path = getattr(self, 'zip_csv', 'data/nyc_zip_codes.csv')
         zips = bz.data(zip_path)
         zips = bz.compute(zips.Zip_Code)
-        url_str = "https://www.yelp.com/search?find_loc={}"
+        url_str = "https://www.yelp.com/search?find_desc=Restaurants&find_loc={}"
         urls = [url_str.format(z) for z in zips]
+        self.logger.info("%s start urls for BizInfoSpider", str(len(urls)))
         for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+            yield scrapy.Request(url=url, callback=self.parse, dont_filter=True)
 
     def parse_business(self, biz, response):
         try:
@@ -49,10 +51,21 @@ class BizInfoSpider(scrapy.Spider):
         return None
 
     def parse(self, response):
+        if not response.css('#logo a::text').extract_first():
+            self.logger.warning('Retrying url: {}'.format(response.url))
+            yield Request(url=response.url, dont_filter=True)
+
         businesses = response.xpath("//li[@class='regular-search-result']")
+
+        if 'visit_captcha' in response.url:
+            self.logger.warning("Captcha hit: {}".format(response.url))
+            raise scrapy.exceptions.CloseSpider("Exiting spider due to captcha...")
 
         if not businesses:
             self.logger.warning("No businesses found in %s", str(response.url))
+            if self.no_item_count == 5:
+                raise scrapy.exceptions.CloseSpider("Too many pages crawled with no items, exiting...")
+            self.no_item_count += 1
 
         for biz in businesses:
             biz_item = self.parse_business(biz, response)
@@ -62,4 +75,4 @@ class BizInfoSpider(scrapy.Spider):
         next_url = response.css('a.next::attr(href)').extract_first()
         if next_url:
             next_page = response.urljoin(next_url)
-            yield scrapy.Request(next_page, callback=self.parse)
+            yield scrapy.Request(next_page, callback=self.parse, dont_filter=True)

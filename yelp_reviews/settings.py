@@ -8,8 +8,20 @@
 #     http://doc.scrapy.org/en/latest/topics/settings.html
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
+import boto3
+
+PROXY_PREFIX="https"
+PROXY_PORT=8888
+def get_proxy_list():
+    ec2 = boto3.client('ec2')
+    instances = ec2.describe_instances(Filters=[{'Name': 'tag:Name', 'Values': ['proxy']}])
+    instances = [i['NetworkInterfaces'][0]['Association']['PublicDnsName'] for i in instances['Reservations'][0]['Instances']]
+    return ["{}://{}:{}".format(PROXY_PREFIX, ip, PROXY_PORT) for ip in instances]
+PROXY_LIST = get_proxy_list()
+# PROXY_LIST = 'proxy_list.csv'
 
 BOT_NAME = 'yelp_reviews'
+DUPEFILTER_DEBUG = True
 
 SPIDER_MODULES = ['yelp_reviews.spiders']
 NEWSPIDER_MODULE = 'yelp_reviews.spiders'
@@ -22,14 +34,14 @@ NEWSPIDER_MODULE = 'yelp_reviews.spiders'
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 16
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 10
+DOWNLOAD_DELAY = 5
 # The download delay setting will honor only one of:
-#CONCURRENT_REQUESTS_PER_DOMAIN = 16
+CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
@@ -46,20 +58,22 @@ COOKIES_ENABLED = False
 
 # Enable or disable spider middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
+SPIDER_MIDDLEWARES = {
 #    'yelp_reviews.middlewares.MyCustomSpiderMiddleware': 543,
-#}
+    # 'scrapy.spidermiddlewares.depth.DepthMiddleware': None,
+}
+DEPTH_LIMIT = 25
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 # HTTPS_PROXY = "https://127.0.0.1:8123"
 DOWNLOADER_MIDDLEWARES = {
-	# 'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
-	# 'scrapy_proxies.RandomProxy': 100,
-	# 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': 90,
+    'scrapy_proxies.RandomProxy': 100,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': 110,
     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
     'scrapy_fake_useragent.middleware.RandomUserAgentMiddleware': 400,
-    # 'yelp_reviews.middlewares.ProxyMiddleware': 410
+    # 'yelp_reviews.middlewares.ProxyMiddleware': 100
 }
 
 # Enable or disable extensions
@@ -80,10 +94,10 @@ AUTOTHROTTLE_ENABLED = True
 # The initial download delay
 AUTOTHROTTLE_START_DELAY = 5
 # The maximum download delay to be set in case of high latencies
-AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = 15
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 10.0
 # Enable showing throttling stats for every response received:
 #AUTOTHROTTLE_DEBUG = False
 
@@ -96,9 +110,10 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
 # Retry many times since proxies often fail
-# RETRY_TIMES = 10
+RETRY_TIMES = 3
+DOWNLOAD_TIMEOUT = 10
 # Retry on most error codes since proxies fail for different reasons
-# RETRY_HTTP_CODES = [500, 503, 504, 400, 403, 404, 408]
+RETRY_HTTP_CODES = [500, 503, 504, 400, 403, 404, 408]
 
 # Proxy list containing entries like
 # http://host1:port
